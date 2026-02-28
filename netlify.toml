@@ -4,3 +4,7 @@
 [[edge_functions]]
   path = "/api/summarize"
   function = "summarize"
+
+[[edge_functions]]
+  path = "/api/doc"
+  function = "doc"

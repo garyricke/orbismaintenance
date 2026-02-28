@@ -530,12 +530,9 @@ function renderHours({ budgeted, tracked, firstDate, lastDate, duration }) {
 
 /* ── Google Doc ─────────────────────────────────────────────────── */
 async function fetchGoogleDoc() {
-  const docUrl   = `https://docs.google.com/document/d/${CONFIG.googleDocId}/export?format=txt`;
-  const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(docUrl)}`;
-
-  const r = await fetch(proxyUrl);
+  const r = await fetch(`/api/doc?id=${encodeURIComponent(CONFIG.googleDocId)}`);
   if (!r.ok) throw new Error(
-    `Could not load the Google Doc (HTTP ${r.status}). ` +
+    `Could not load the Google Doc (${r.status}). ` +
     `Make sure it is shared as "Anyone with the link — Viewer".`
   );
 
