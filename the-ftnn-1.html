@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  <title>The Edge 2 — Client Report</title>
+
+  <!-- ================================================================
+  CONFIGURATION  ·  These are the only two values you need to change
+                    when duplicating this file for a new client.
+  ================================================================
+  projectName  → Must match the Clockify project name exactly
+  googleDocId  → The ID in the Google Doc URL:
+                 docs.google.com/document/d/ ← THIS PART → /edit
+                 Share the doc: File › Share › General access
+                 → Anyone with the link (Viewer)
+
+  The Anthropic API key is NOT stored here.
+  Set it in Netlify: Site Settings → Environment Variables
+  Variable name: ANTHROPIC_API_KEY
+  ================================================================ -->
+  <script>
+    const CONFIG = {
+      projectName:    "FTNN 1",
+      googleDocId:    "1XHxGfjZqCW8MimGnuW6cmuNoUxa4xUcuvBQb8sg0Xy4",
+      clockifyApiKey: "NTE1OGI4ODMtZjBlMS00NmExLTkwNGYtN2ZjZDk1MTZkZTZm"
+    };
+  </script>
+  <!-- ================================================================ -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300..900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+
+  <style>
+    /* ── Reset ──────────────────────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:       #f5f5f5;
+      --card:     #ffffff;
+      --text:     #333333;
+      --muted:    #666666;
+      --light:    #999999;
+      --border:   #e0e0e0;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Loader ─────────────────────────────────────────────────── */
+    .loader-wrap {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 20px;
+      background: var(--bg);
+      z-index: 9999;
+      transition: opacity .5s ease, visibility .5s ease;
+    }
+    .loader-wrap.fade-out { opacity: 0; visibility: hidden; }
+    .loading-text { font-size: 22px; font-weight: 600; letter-spacing: 1px; }
+
+    .loader-svg { width: 350px; height: 180px; }
+    .loader-bg  { fill: var(--bg); }
+    .dot { fill: #333; }
+    .dot:nth-child(1) { animation: d1 1.2s cubic-bezier(.59,.8,.29,.1) infinite alternate-reverse 0s;   }
+    .dot:nth-child(2) { animation: d2 1.2s cubic-bezier(.59,.8,.29,.1) infinite alternate-reverse .2s;  }
+    .dot:nth-child(3) { animation: d3 1.2s cubic-bezier(.59,.8,.29,.1) infinite alternate-reverse .4s;  }
+    .dot:nth-child(4) { animation: d4 1.2s cubic-bezier(.59,.8,.29,.1) infinite alternate-reverse .6s;  }
+    @keyframes d1 { to { transform: translate3d(180px,0,0); } }
+    @keyframes d2 { to { transform: translate3d(120px,0,0); } }
+    @keyframes d3 { to { transform: translate3d(60px,0,0);  } }
+    @keyframes d4 { to { transform: translate3d(0,0,0);     } }
+
+    /* ── Page ───────────────────────────────────────────────────── */
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 44px 24px 60px;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    .report-header {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 36px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--border);
+    }
+    .client-name {
+      font-family: 'Bebas Neue', condensed, sans-serif;
+      font-size: 46px;
+      letter-spacing: 1px;
+      line-height: 1;
+    }
+    .report-date { font-size: 13px; font-weight: 500; color: var(--muted); }
+
+    /* ── Section ────────────────────────────────────────────────── */
+    .section { margin-bottom: 28px; }
+    .section-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 2px;
+      color: var(--light); margin-bottom: 12px;
+    }
+
+    /* ── Card ───────────────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    }
+
+    /* ── Hours Card ─────────────────────────────────────────────── */
+    .hours-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .hours-project-name { font-size: 18px; font-weight: 700; }
+    .badge {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px;
+      padding: 4px 12px; border-radius: 20px;
+    }
+    .badge-healthy  { background: #e8f5e9; color: #2e7d32; }
+    .badge-warning  { background: #fff3e0; color: #e65100; }
+    .badge-critical { background: #ffebee; color: #b71c1c; }
+    .badge-over     { background: #ffebee; color: #b71c1c; }
+
+    /* Battery */
+    .battery {
+      width: 100%; height: 44px;
+      background: #f0f0f0;
+      border-radius: 22px;
+      border: 2px solid var(--border);
+      overflow: hidden;
+      margin-bottom: 22px;
+    }
+    .battery.over-budget { animation: pulse-size 1.5s ease-in-out infinite; }
+    .battery-fill {
+      height: 100%; border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Bebas Neue', condensed, sans-serif;
+      font-size: 28px; color: #fff; min-width: 64px;
+      transition: width .4s ease;
+    }
+    .zone5 { background: linear-gradient(90deg,#388e3c,#6ec272); }
+    .zone4 { background: linear-gradient(90deg,#acd864,#4bae4f); }
+    .zone3 { background: linear-gradient(90deg,#ffc107,#cddc39); color: #555; }
+    .zone2 { background: linear-gradient(90deg,#fe9700,#f57c00); }
+    .zone1 { background: linear-gradient(90deg,#f34538,#c72b2b); }
+    .over  { background: linear-gradient(90deg,#f34538,#c72b2b); }
+
+    /* Stats */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      text-align: center;
+    }
+    .stat + .stat { border-left: 1px solid var(--border); }
+    .stat-value {
+      font-family: 'Bebas Neue', condensed, sans-serif;
+      font-size: 30px; letter-spacing: .5px; line-height: 1.1;
+    }
+    .stat-label {
+      font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--light); margin-top: 2px;
+    }
+    .v-remain { color: var(--text); }
+    .v-used   { color: var(--muted); }
+    .v-total  { color: var(--light); }
+
+    .date-range {
+      text-align: center; font-size: 12px; color: var(--muted);
+      margin-top: 18px; padding-top: 14px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    /* ── Summary Card ───────────────────────────────────────────── */
+    .summary-body {
+      font-size: 14px; line-height: 1.8; color: var(--text);
+    }
+    .summary-body h2 {
+      font-size: 14px; font-weight: 700; color: var(--text);
+      margin: 22px 0 8px; text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .summary-body h2:first-child { margin-top: 0; }
+    .summary-body ul { padding-left: 18px; margin-bottom: 12px; }
+    .summary-body li { margin-bottom: 6px; }
+    .summary-body p  { margin-bottom: 12px; }
+    .summary-body p:last-child { margin-bottom: 0; }
+    .summary-body strong { font-weight: 700; }
+
+    .ai-credit {
+      font-size: 10px; color: var(--light);
+      text-align: right; margin-top: 16px; padding-top: 12px;
+      border-top: 1px solid #f5f5f5;
+    }
+
+    /* Streaming cursor */
+    .streaming::after { content: '▋'; animation: blink 1s step-end infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* Skeleton */
+    .skeleton {
+      height: 13px; border-radius: 4px; margin-bottom: 10px;
+      background: linear-gradient(90deg,#f0f0f0 25%,#e4e4e4 50%,#f0f0f0 75%);
+      background-size: 400% 100%;
+      animation: shimmer 1.4s ease infinite;
+    }
+    .skeleton.w60 { width: 60%; }
+    .skeleton.w75 { width: 75%; }
+    @keyframes shimmer { 0%{background-position:100% 0} 100%{background-position:0 0} }
+
+    /* Setup / error states */
+    .setup-card {
+      background: #fff8e1; border: 1px solid #ffe082;
+      border-radius: 14px; padding: 24px;
+    }
+    .setup-card h3 { font-size: 14px; font-weight: 700; color: #e65100; margin-bottom: 14px; }
+    .setup-card ol { padding-left: 18px; font-size: 13px; line-height: 2.2; color: var(--muted); }
+    .setup-card code {
+      background: rgba(0,0,0,.07); padding: 1px 6px;
+      border-radius: 3px; font-family: monospace; font-size: 12px;
+    }
+
+    .error-card {
+      background: #ffebee; border: 1px solid #ef9a9a;
+      border-radius: 14px; padding: 18px 20px;
+      font-size: 13px; color: #c62828; line-height: 1.6;
+    }
+
+    /* Animations */
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fade-up .4s ease forwards; }
+
+    @keyframes pulse-size {
+      0%,100% { transform: scale(1); }
+      50%      { transform: scale(1.02); }
+    }
+
+    /* ── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 560px) {
+      .page { padding: 28px 16px 48px; }
+      .client-name { font-size: 34px; }
+      .stat-value { font-size: 24px; }
+      .battery-fill { font-size: 22px; }
+    }
+
+    /* ── Password Gate ──────────────────────────────────────────── */
+    .gate-wrap {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 28px;
+      background: var(--bg);
+      z-index: 10000;
+      transition: opacity .4s ease, visibility .4s ease;
+    }
+    .gate-wrap.fade-out { opacity: 0; visibility: hidden; }
+
+    .gate-icon { font-size: 38px; line-height: 1; user-select: none; }
+
+    .gate-heading {
+      font-family: 'Bebas Neue', condensed, sans-serif;
+      font-size: 34px; letter-spacing: 1px;
+      color: var(--text); text-align: center;
+    }
+
+    .gate-form {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 10px;
+      width: 100%; max-width: 300px; padding: 0 24px;
+    }
+
+    .gate-input {
+      width: 100%; padding: 13px 18px;
+      border: 2px solid var(--border); border-radius: 10px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 15px; font-weight: 500;
+      color: var(--text); background: var(--card);
+      outline: none; text-align: center; letter-spacing: 2px;
+      transition: border-color .2s;
+    }
+    .gate-input:focus   { border-color: #aaa; }
+    .gate-input.err     { border-color: #ef5350; }
+
+    .gate-btn {
+      width: 100%; padding: 13px;
+      background: #222; color: #fff; border: none; border-radius: 10px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13px; font-weight: 700; letter-spacing: .5px;
+      cursor: pointer; transition: background .2s, transform .1s;
+    }
+    .gate-btn:hover  { background: #000; }
+    .gate-btn:active { transform: scale(.98); }
+
+    .gate-err-msg {
+      font-size: 12px; font-weight: 600; color: #ef5350;
+      opacity: 0; transition: opacity .2s; min-height: 16px;
+    }
+    .gate-err-msg.show { opacity: 1; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-8px); }
+      40%     { transform: translateX(8px); }
+      60%     { transform: translateX(-5px); }
+      80%     { transform: translateX(5px); }
+    }
+    .shake { animation: shake .4s ease; }
+  </style>
+</head>
+<body>
+
+<!-- ── Password Gate ────────────────────────────────────────────── -->
+<div id="gate" class="gate-wrap">
+  <div class="gate-icon">🔒</div>
+  <div class="gate-heading">Client Report</div>
+  <div class="gate-form">
+    <input id="gateInput" class="gate-input" type="password"
+           placeholder="Password" autocomplete="off" spellcheck="false">
+    <button class="gate-btn" id="gateBtn">View Report</button>
+    <div class="gate-err-msg" id="gateErr">Incorrect password</div>
+  </div>
+</div>
+
+<!-- ── Loader ───────────────────────────────────────────────────── -->
+<div id="loader" class="loader-wrap">
+  <div class="loading-text">Loading</div>
+  <svg class="loader-svg" viewBox="0 0 500 180">
+    <defs>
+      <filter id="gooey" color-interpolation-filters="sRGB">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur"/>
+        <feColorMatrix in="blur" mode="matrix"
+          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo"/>
+        <feBlend in="SourceGraphic" in2="goo"/>
+      </filter>
+    </defs>
+    <rect class="loader-bg" x="0" y="0" width="500" height="180"/>
+    <g filter="url(#gooey)">
+      <circle class="dot" cx="110" cy="90" r="26"/>
+      <circle class="dot" cx="210" cy="90" r="26"/>
+      <circle class="dot" cx="310" cy="90" r="26"/>
+      <circle class="dot" cx="410" cy="90" r="26"/>
+    </g>
+  </svg>
+</div>
+
+<!-- ── Page ─────────────────────────────────────────────────────── -->
+<div id="page" class="page" style="display:none">
+
+  <header class="report-header">
+    <h1 class="client-name" id="clientName"></h1>
+    <div class="report-date" id="reportDate"></div>
+  </header>
+
+  <div class="section">
+    <div class="section-label">Hours at a Glance</div>
+    <div id="hoursContent"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Activity Summary</div>
+    <div id="summaryContent"></div>
+  </div>
+
+</div>
+
+<script>
+/* ── Utilities ──────────────────────────────────────────────────── */
+function parseDuration(str) {
+  if (!str) return 0;
+  const h = +(str.match(/PT(\d+)H/) || [0,0])[1];
+  const m = +(str.match(/(\d+)M/)   || [0,0])[1];
+  const s = +(str.match(/(\d+)S/)   || [0,0])[1];
+  return h + m / 60 + s / 3600;
+}
+
+function fmtH(n) { return Math.round(n); }
+
+function hideLoader() {
+  const el = document.getElementById('loader');
+  el.classList.add('fade-out');
+  setTimeout(() => el.style.display = 'none', 500);
+}
+
+/* ── Clockify ───────────────────────────────────────────────────── */
+async function cfetch(path) {
+  const r = await fetch(`https://api.clockify.me/api/v1${path}`, {
+    headers: { 'X-Api-Key': CONFIG.clockifyApiKey }
+  });
+  if (!r.ok) throw new Error(`Clockify error (${r.status}) on ${path}`);
+  return r.json();
+}
+
+async function getProject() {
+  const workspaces = await cfetch('/workspaces');
+  const wsId = workspaces[0].id;
+
+  let all = [], page = 1;
+  while (true) {
+    const batch = await cfetch(`/workspaces/${wsId}/projects?page=${page}&page-size=50`);
+    if (!batch?.length) break;
+    all = all.concat(batch);
+    if (batch.length < 50) break;
+    page++;
+  }
+
+  const project = all.find(p =>
+    p.name.trim().toLowerCase() === CONFIG.projectName.trim().toLowerCase()
+  );
+  if (!project) throw new Error(
+    `Project "${CONFIG.projectName}" not found in Clockify. ` +
+    `Check the spelling matches exactly.`
+  );
+
+  const budgeted = parseDuration(project?.timeEstimate?.estimate || 'PT0S');
+  const tracked  = parseDuration(project?.duration || 'PT0S');
+  const dateRange = await getDateRange(wsId, project.id);
+
+  return { budgeted, tracked, ...dateRange };
+}
+
+async function getDateRange(wsId, projectId) {
+  try {
+    const start = new Date();
+    start.setFullYear(start.getFullYear() - 1);
+
+    const r = await fetch(
+      `https://reports.api.clockify.me/v1/workspaces/${wsId}/reports/detailed`,
+      {
+        method: 'POST',
+        headers: { 'X-Api-Key': CONFIG.clockifyApiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dateRangeStart: start.toISOString(),
+          dateRangeEnd:   new Date().toISOString(),
+          detailedFilter: { page: 1, pageSize: 1000 },
+          exportType: 'JSON',
+          projects: { ids: [projectId] }
+        })
+      }
+    );
+    if (!r.ok) return {};
+
+    const data    = await r.json();
+    const entries = data?.timeentries || [];
+    const dates   = entries
+      .map(e => new Date(e.timeInterval?.start))
+      .filter(d => !isNaN(d))
+      .sort((a, b) => a - b);
+
+    if (!dates.length) return {};
+
+    const first = dates[0];
+    const last  = dates[dates.length - 1];
+    const days  = Math.round((last - first) / 86400000);
+    const w = Math.floor(days / 7), d = days % 7;
+    const dur = days === 0 ? 'same day'
+              : w && d ? `${w}w ${d}d`
+              : w ? `${w}w` : `${d}d`;
+
+    return {
+      firstDate: first.toLocaleDateString(),
+      lastDate:  last.toLocaleDateString(),
+      duration:  dur
+    };
+  } catch (_) { return {}; }
+}
+
+/* ── Render Hours ───────────────────────────────────────────────── */
+function renderHours({ budgeted, tracked, firstDate, lastDate, duration }) {
+  const remaining = Math.max(0, budgeted - tracked);
+  const usedPct   = budgeted ? (tracked / budgeted) * 100 : 0;
+  const remPct    = Math.max(0, 100 - usedPct);
+  const fillW     = usedPct > 100 ? 100 : remPct;
+  const label     = `${Math.round(usedPct > 100 ? usedPct : remPct)}%`;
+
+  let fillCls = 'zone5';
+  if      (usedPct > 100) fillCls = 'over';
+  else if (remPct  <= 20) fillCls = 'zone1';
+  else if (remPct  <= 40) fillCls = 'zone2';
+  else if (remPct  <= 60) fillCls = 'zone3';
+  else if (remPct  <= 80) fillCls = 'zone4';
+
+  let badgeLabel = 'On Track',   badgeCls = 'badge-healthy';
+  if      (usedPct > 100) { badgeLabel = 'Over Budget'; badgeCls = 'badge-over';     }
+  else if (remPct  <= 20) { badgeLabel = 'Critical';    badgeCls = 'badge-critical'; }
+  else if (remPct  <= 40) { badgeLabel = 'Low Hours';   badgeCls = 'badge-warning';  }
+
+  const dateStr = firstDate
+    ? `${firstDate} — ${lastDate}${duration ? ` · ${duration}` : ''}`
+    : 'No time entries yet';
+
+  document.getElementById('hoursContent').innerHTML = `
+    <div class="card fade-up">
+      <div class="hours-top">
+        <div class="hours-project-name">${CONFIG.projectName}</div>
+        <span class="badge ${badgeCls}">${badgeLabel}</span>
+      </div>
+      <div class="battery ${usedPct > 100 ? 'over-budget' : ''}">
+        <div class="battery-fill ${fillCls}" style="width:${fillW}%">${label}</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-value v-remain">${fmtH(remaining)}</div>
+          <div class="stat-label">Remaining</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value v-used">${fmtH(tracked)}</div>
+          <div class="stat-label">Used</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value v-total">${fmtH(budgeted)}</div>
+          <div class="stat-label">Total</div>
+        </div>
+      </div>
+      <div class="date-range">${dateStr}</div>
+    </div>
+  `;
+}
+
+/* ── Google Doc ─────────────────────────────────────────────────── */
+async function fetchGoogleDoc() {
+  const r = await fetch(`/api/doc?id=${encodeURIComponent(CONFIG.googleDocId)}`);
+  if (!r.ok) throw new Error(
+    `Could not load the Google Doc (${r.status}). ` +
+    `Make sure it is shared as "Anyone with the link — Viewer".`
+  );
+
+  const text = await r.text();
+  if (!text || text.trim().length < 20) throw new Error(
+    'The Google Doc appears to be empty or could not be read.'
+  );
+  return text;
+}
+
+/* ── AI Summary (streamed) ──────────────────────────────────────── */
+async function generateSummary(docText) {
+  const summaryEl = document.getElementById('summaryContent');
+
+  // Skeleton while waiting for first token
+  summaryEl.innerHTML = `
+    <div class="card fade-up">
+      <div class="summary-body" id="summaryBody">
+        <div class="skeleton w75"></div>
+        <div class="skeleton w60"></div>
+        <div class="skeleton" style="margin-top:18px"></div>
+        <div class="skeleton w75"></div>
+        <div class="skeleton w60"></div>
+        <div class="skeleton" style="margin-top:18px"></div>
+        <div class="skeleton w75"></div>
+      </div>
+    </div>
+  `;
+
+  const r = await fetch('/api/summarize', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-opus-4-6',
+      max_tokens: 4096,
+      stream: true,
+      system: `You are a professional project communications specialist for a digital agency.
+Transform raw internal project notes into a polished, professional client-facing summary.
+Write clearly and concisely. Use plain language the client will understand.
+Avoid internal jargon, timestamps, or staff names unless essential.`,
+      messages: [{
+        role: 'user',
+        content:
+`Below are raw internal notes from the "${CONFIG.projectName}" project.
+Write a clean, professional activity summary for the client using this markdown structure:
+
+## Project Status
+2–3 sentences summarising where the project stands right now.
+
+## What We've Done
+Bullet points of completed work. Group by date or theme. Be specific but concise.
+
+## Decisions & Milestones
+Significant decisions made, issues resolved, or milestones reached.
+
+## Next Steps
+Upcoming work and any items that need client input or approval.
+
+Keep the tone warm, professional, and positive. If a date range is clear from the notes, mention it. Focus on value delivered.
+
+---
+RAW NOTES:
+${docText}`
+      }]
+    })
+  });
+
+  if (!r.ok) {
+    const errText = await r.text();
+    throw new Error(`Anthropic API error (${r.status}): ${errText}`);
+  }
+
+  // Switch to streaming output
+  summaryEl.innerHTML = `
+    <div class="card fade-up">
+      <div class="summary-body streaming" id="summaryBody"></div>
+    </div>
+  `;
+  const bodyEl = document.getElementById('summaryBody');
+
+  // Parse SSE stream
+  const reader  = r.body.getReader();
+  const decoder = new TextDecoder();
+  let buf    = '';
+  let raw    = '';
+  let inText = false;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop(); // hold the last incomplete line
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6).trim();
+      if (!data || data === '[DONE]') continue;
+
+      try {
+        const ev = JSON.parse(data);
+
+        if (ev.type === 'content_block_start') {
+          inText = ev.content_block?.type === 'text';
+
+        } else if (ev.type === 'content_block_stop') {
+          inText = false;
+
+        } else if (ev.type === 'content_block_delta' && inText && ev.delta?.type === 'text_delta') {
+          raw += ev.delta.text;
+          bodyEl.innerHTML = marked.parse(raw);
+        }
+      } catch (_) { /* ignore partial JSON */ }
+    }
+  }
+
+  // Done — remove cursor, add AI credit
+  bodyEl.classList.remove('streaming');
+  bodyEl.insertAdjacentHTML('afterend',
+    '<div class="ai-credit">Summary generated by Claude AI · Anthropic</div>'
+  );
+}
+
+/* ── Setup instructions ─────────────────────────────────────────── */
+function showSetupInstructions() {
+  document.getElementById('summaryContent').innerHTML = `
+    <div class="setup-card fade-up">
+      <h3>How to connect your Google Doc</h3>
+      <ol>
+        <li>Open the Google Doc with the client notes</li>
+        <li>Click <strong>File → Share → Share with others</strong></li>
+        <li>Under "General access" choose <strong>Anyone with the link</strong> (Viewer is fine)</li>
+        <li>Your doc URL looks like:<br>
+            <code>docs.google.com/document/d/<strong>1BxiM…xyz</strong>/edit</code><br>
+            Copy the bold part — that's the Doc ID</li>
+        <li>Open this HTML file in a text editor</li>
+        <li>Replace <code>PASTE_GOOGLE_DOC_ID_HERE</code> in the CONFIG block with that ID</li>
+        <li>Reload this page</li>
+      </ol>
+    </div>
+  `;
+}
+
+/* ── Main ───────────────────────────────────────────────────────── */
+async function init() {
+  // Fill header
+  document.getElementById('clientName').textContent = CONFIG.projectName;
+  document.title = `${CONFIG.projectName} — Client Report`;
+  document.getElementById('reportDate').textContent =
+    new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  // ── Hours (fetch, then reveal page) ─────────────────────────────
+  try {
+    const data = await getProject();
+    hideLoader();
+    document.getElementById('page').style.display = 'block';
+    renderHours(data);
+  } catch (e) {
+    hideLoader();
+    document.getElementById('page').style.display = 'block';
+    document.getElementById('hoursContent').innerHTML =
+      `<div class="error-card fade-up">⚠ ${e.message}</div>`;
+  }
+
+  // ── Summary ──────────────────────────────────────────────────────
+  const noDocId = !CONFIG.googleDocId ||
+    CONFIG.googleDocId === 'PASTE_GOOGLE_DOC_ID_HERE';
+
+  if (noDocId) { showSetupInstructions(); return; }
+
+  try {
+    const docText = await fetchGoogleDoc();
+    await generateSummary(docText);
+  } catch (e) {
+    document.getElementById('summaryContent').innerHTML =
+      `<div class="error-card fade-up">⚠ ${e.message}</div>`;
+  }
+}
+
+/* ── Auth ───────────────────────────────────────────────────────── */
+// SHA-256 of the project name (lowercased). Plaintext never stored here.
+const _h = '796b788e6606c30e5a57e1d2e8839ba2aa699fcc17fefb230396bbfb37cc05d7';
+
+async function _digest(str) {
+  const buf = await crypto.subtle.digest(
+    'SHA-256', new TextEncoder().encode(str)
+  );
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function checkPassword() {
+  const input  = document.getElementById('gateInput');
+  const errEl  = document.getElementById('gateErr');
+  const hash   = await _digest(input.value.trim().toLowerCase());
+
+  if (hash === _h) {
+    sessionStorage.setItem('_a', _h);
+    const gate = document.getElementById('gate');
+    gate.classList.add('fade-out');
+    setTimeout(() => { gate.style.display = 'none'; }, 400);
+    init();
+  } else {
+    input.classList.add('err', 'shake');
+    errEl.classList.add('show');
+    setTimeout(() => {
+      input.classList.remove('shake', 'err');
+      errEl.classList.remove('show');
+      input.value = '';
+      input.focus();
+    }, 1000);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Skip gate if already authenticated this browser session
+  if (sessionStorage.getItem('_a') === _h) {
+    document.getElementById('gate').style.display = 'none';
+    init();
+    return;
+  }
+
+  const btn   = document.getElementById('gateBtn');
+  const input = document.getElementById('gateInput');
+  btn.addEventListener('click', checkPassword);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
+  input.focus();
+});
+</script>
+</body>
+</html>
