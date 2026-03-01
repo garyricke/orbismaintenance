@@ -469,26 +469,35 @@
   </div>
 
   <div class="section">
-    <div class="section-label">Activity Summary</div>
+    <div class="summary-header">
+      <div class="section-label">Activity Summary</div>
+      <div class="ask-trigger">
+        <span class="ask-trigger-text">AI can get things wrong</span>
+        <button class="ask-trigger-btn" id="askToggle">Ask Gar</button>
+      </div>
+    </div>
     <div id="summaryContent"></div>
   </div>
 
-  <div class="section">
-    <div class="section-label">Ask a Question</div>
-    <div class="card fade-up">
-      <p class="ask-intro">AI can get things wrong — let me know if you have any questions.</p>
-      <form name="ask-gar" data-netlify="true" id="askForm" class="ask-form">
-        <input type="hidden" name="form-name" value="ask-gar">
-        <input type="hidden" name="project" id="askProject">
-        <p class="ask-honeypot"><label>Skip: <input name="bot-field"></label></p>
-        <input type="text"  name="name"     class="ask-input"    placeholder="Your name"     required>
-        <input type="email" name="email"    class="ask-input"    placeholder="Email address"  required>
-        <textarea           name="question" class="ask-textarea"  placeholder="Your question…" required></textarea>
-        <button type="submit" class="ask-btn">Ask Gar</button>
-      </form>
-    </div>
-  </div>
+</div>
 
+<!-- Ask Gar Modal -->
+<div id="askModal" class="ask-modal-wrap">
+  <div class="ask-modal-backdrop" id="askBackdrop"></div>
+  <div class="ask-modal-card">
+    <button class="ask-modal-close" id="askClose" aria-label="Close">✕</button>
+    <div class="ask-modal-title">Ask Gar</div>
+    <p class="ask-modal-subtitle">AI can get things wrong — happy to clarify anything.</p>
+    <form name="ask-gar" data-netlify="true" id="askForm" class="ask-form">
+      <input type="hidden" name="form-name" value="ask-gar">
+      <input type="hidden" name="project" id="askProject">
+      <p class="ask-honeypot"><label>Skip: <input name="bot-field"></label></p>
+      <input type="text"  name="name"     class="ask-input"    placeholder="Your name"     required>
+      <input type="email" name="email"    class="ask-input"    placeholder="Email address"  required>
+      <textarea           name="question" class="ask-textarea"  placeholder="Your question…" required></textarea>
+      <button type="submit" class="ask-btn">Ask Gar</button>
+    </form>
+  </div>
 </div>
 
 <script>
