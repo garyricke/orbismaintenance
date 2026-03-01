@@ -341,39 +341,80 @@
     }
     .shake { animation: shake .4s ease; }
 
-    /* ── Disclaimer ─────────────────────────────────────────────── */
-    .summary-disclaimer {
-      font-size: 11px; color: var(--light); font-style: italic; line-height: 1.5;
+    /* ── Ask Gar trigger bar ────────────────────────────────────── */
+    .summary-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
     }
+    .summary-header .section-label { margin-bottom: 0; }
+    .ask-trigger { display: flex; align-items: center; gap: 10px; }
+    .ask-trigger-text {
+      font-size: 11px; color: var(--light); font-style: italic;
+    }
+    .ask-trigger-btn {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 11px; font-weight: 700; letter-spacing: .3px;
+      padding: 5px 14px; border-radius: 20px;
+      background: #222; color: #fff; border: none;
+      cursor: pointer; white-space: nowrap; transition: background .2s;
+    }
+    .ask-trigger-btn:hover { background: #000; }
+    @media (max-width: 400px) { .ask-trigger-text { display: none; } }
 
-    /* ── Ask Gar Form ───────────────────────────────────────────── */
-    .ask-intro {
-      font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.6;
+    /* ── Ask Gar modal ──────────────────────────────────────────── */
+    .ask-modal-wrap {
+      display: none;
+      position: fixed; inset: 0; z-index: 20000;
+      align-items: center; justify-content: center; padding: 24px;
+    }
+    .ask-modal-wrap.open { display: flex; }
+    .ask-modal-backdrop {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,.45); backdrop-filter: blur(2px);
+    }
+    .ask-modal-card {
+      position: relative; z-index: 1;
+      background: var(--card); border-radius: 16px; padding: 28px;
+      width: 100%; max-width: 420px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.22);
+      animation: fade-up .2s ease forwards;
+    }
+    .ask-modal-close {
+      position: absolute; top: 14px; right: 16px;
+      background: none; border: none; cursor: pointer;
+      font-size: 18px; color: var(--light); line-height: 1; padding: 4px;
+    }
+    .ask-modal-close:hover { color: var(--text); }
+    .ask-modal-title {
+      font-family: 'Bebas Neue', condensed, sans-serif;
+      font-size: 28px; letter-spacing: 1px; margin-bottom: 4px;
+    }
+    .ask-modal-subtitle {
+      font-size: 12px; color: var(--muted); margin-bottom: 18px; line-height: 1.5;
     }
     .ask-form { display: flex; flex-direction: column; gap: 10px; }
     .ask-input, .ask-textarea {
       width: 100%; padding: 11px 14px;
       border: 1.5px solid var(--border); border-radius: 8px;
       font-family: 'Montserrat', sans-serif;
-      font-size: 14px; color: var(--text); background: var(--card);
+      font-size: 14px; color: var(--text); background: var(--bg);
       outline: none; transition: border-color .2s;
     }
     .ask-input:focus, .ask-textarea:focus { border-color: #aaa; }
     .ask-textarea { resize: vertical; min-height: 80px; }
     .ask-btn {
-      align-self: flex-start; padding: 11px 28px;
+      align-self: flex-start; padding: 11px 28px; margin-top: 2px;
       background: #222; color: #fff; border: none; border-radius: 8px;
       font-family: 'Montserrat', sans-serif;
       font-size: 13px; font-weight: 700; letter-spacing: .5px;
       cursor: pointer; transition: background .2s, transform .1s;
-      margin-top: 2px;
     }
-    .ask-btn:hover  { background: #000; }
-    .ask-btn:active { transform: scale(.98); }
+    .ask-btn:hover   { background: #000; }
+    .ask-btn:active  { transform: scale(.98); }
     .ask-btn:disabled { background: #bbb; cursor: not-allowed; }
     .ask-success {
       display: flex; align-items: center; gap: 12px;
-      font-size: 14px; font-weight: 600; color: #2e7d32;
+      font-size: 14px; font-weight: 600; color: #2e7d32; padding: 8px 0;
     }
     .ask-honeypot { display: none; }
   </style>
@@ -428,26 +469,35 @@
   </div>
 
   <div class="section">
-    <div class="section-label">Activity Summary</div>
+    <div class="summary-header">
+      <div class="section-label">Activity Summary</div>
+      <div class="ask-trigger">
+        <span class="ask-trigger-text">AI can get things wrong</span>
+        <button class="ask-trigger-btn" id="askToggle">Ask Gar</button>
+      </div>
+    </div>
     <div id="summaryContent"></div>
   </div>
 
-  <div class="section">
-    <div class="section-label">Ask a Question</div>
-    <div class="card fade-up">
-      <p class="ask-intro">AI can get things wrong — let me know if you have any questions.</p>
-      <form name="ask-gar" data-netlify="true" id="askForm" class="ask-form">
-        <input type="hidden" name="form-name" value="ask-gar">
-        <input type="hidden" name="project" id="askProject">
-        <p class="ask-honeypot"><label>Skip: <input name="bot-field"></label></p>
-        <input type="text"  name="name"     class="ask-input"    placeholder="Your name"     required>
-        <input type="email" name="email"    class="ask-input"    placeholder="Email address"  required>
-        <textarea           name="question" class="ask-textarea"  placeholder="Your question…" required></textarea>
-        <button type="submit" class="ask-btn">Ask Gar</button>
-      </form>
-    </div>
-  </div>
+</div>
 
+<!-- ── Ask Gar Modal ─────────────────────────────────────────────── -->
+<div id="askModal" class="ask-modal-wrap">
+  <div class="ask-modal-backdrop" id="askBackdrop"></div>
+  <div class="ask-modal-card">
+    <button class="ask-modal-close" id="askClose" aria-label="Close">✕</button>
+    <div class="ask-modal-title">Ask Gar</div>
+    <p class="ask-modal-subtitle">AI can get things wrong — happy to clarify anything.</p>
+    <form name="ask-gar" data-netlify="true" id="askForm" class="ask-form">
+      <input type="hidden" name="form-name" value="ask-gar">
+      <input type="hidden" name="project" id="askProject">
+      <p class="ask-honeypot"><label>Skip: <input name="bot-field"></label></p>
+      <input type="text"  name="name"     class="ask-input"    placeholder="Your name"     required>
+      <input type="email" name="email"    class="ask-input"    placeholder="Email address"  required>
+      <textarea           name="question" class="ask-textarea"  placeholder="Your question…" required></textarea>
+      <button type="submit" class="ask-btn">Ask Gar</button>
+    </form>
+  </div>
 </div>
 
 <script>
@@ -786,7 +836,6 @@ async function init() {
       <div class="summary-generating">
         <div class="summary-generating-label">Generating AI Summary</div>
         <div class="gen-dots"><span></span><span></span><span></span></div>
-        <div class="summary-disclaimer">AI can get things wrong — use the form below if you have any questions.</div>
       </div>
     </div>
   `;
@@ -856,6 +905,20 @@ document.addEventListener('DOMContentLoaded', () => {
   input.addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
   input.focus();
 
+  // Ask Gar modal — open / close
+  const modal    = document.getElementById('askModal');
+  const backdrop = document.getElementById('askBackdrop');
+  const closeBtn = document.getElementById('askClose');
+  const toggle   = document.getElementById('askToggle');
+
+  function openModal()  { modal.classList.add('open');    document.body.style.overflow = 'hidden'; }
+  function closeModal() { modal.classList.remove('open'); document.body.style.overflow = ''; }
+
+  toggle  .addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', closeModal);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
   // Ask Gar form — AJAX submission to Netlify
   document.getElementById('askForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -876,6 +939,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <span>Sent! Gar will be in touch.</span>
         </div>
       `;
+      setTimeout(closeModal, 2500);
     } catch (_) {
       submit.disabled    = false;
       submit.textContent = 'Ask Gar';
