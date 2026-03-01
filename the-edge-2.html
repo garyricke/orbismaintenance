@@ -566,41 +566,58 @@ async function fetchGoogleDoc() {
   return text;
 }
 
-/* ── AI Summary (streamed) ──────────────────────────────────────── */
+/* ── AI Summary (two-pass: Haiku condenses → Opus writes) ───────── */
 async function generateSummary(docText) {
   const summaryEl = document.getElementById('summaryContent');
 
-  // Skeleton while waiting for first token
-  summaryEl.innerHTML = `
-    <div class="card fade-up">
-      <div class="summary-body" id="summaryBody">
-        <div class="skeleton w75"></div>
-        <div class="skeleton w60"></div>
-        <div class="skeleton" style="margin-top:18px"></div>
-        <div class="skeleton w75"></div>
-        <div class="skeleton w60"></div>
-        <div class="skeleton" style="margin-top:18px"></div>
-        <div class="skeleton w75"></div>
-      </div>
-    </div>
-  `;
+  // ── Pass 1: Haiku condenses raw notes into a compact brief ──────
+  // Update the label already showing from init()
+  const genLabel = summaryEl.querySelector('.summary-generating-label');
+  if (genLabel) genLabel.textContent = 'Condensing Notes';
+
+  const pass1 = await fetch('/api/summarize', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5',
+      max_tokens: 1500,
+      stream: false,
+      system: `You are a project note condenser. Extract and compress the key information from raw project notes into a structured brief. Preserve all dates, decisions, action items, blockers, and status updates. Be thorough but concise. Output plain text only.`,
+      messages: [{
+        role: 'user',
+        content: `Condense these raw project notes into a compact brief, preserving all important facts, dates, decisions, blockers, and action items:\n\n${docText}`
+      }]
+    })
+  });
+
+  if (!pass1.ok) {
+    const errText = await pass1.text();
+    throw new Error(`Condensing step error (${pass1.status}): ${errText}`);
+  }
+
+  const pass1Data = await pass1.json();
+  const condensed = pass1Data.content[0].text;
+
+  // ── Pass 2: Opus writes the polished client report (streamed) ───
+  const genLabel2 = summaryEl.querySelector('.summary-generating-label');
+  if (genLabel2) genLabel2.textContent = 'Writing Summary';
 
   const r = await fetch('/api/summarize', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5',
+      model: 'claude-opus-4-6',
       max_tokens: 4096,
       stream: true,
       system: `You are a professional project communications specialist for a digital agency.
-Transform raw internal project notes into a polished, professional client-facing summary.
+Transform condensed project notes into a polished, professional client-facing summary.
 Write clearly and concisely. Use plain language the client will understand.
 Avoid internal jargon, timestamps, or staff names unless essential.`,
       messages: [{
         role: 'user',
         content:
-`Below are raw internal notes from the "${CONFIG.projectName}" project.
-Write a clean, professional activity summary for the client using this markdown structure:
+`Below is a condensed brief of activity on the "${CONFIG.projectName}" project.
+Write a clean, professional client-facing summary using this markdown structure:
 
 ## Immediate Priorities
 Any urgent actions, blockers, or items requiring the client's attention or decision right now. If there are none, write a single sentence confirming everything is on track.
@@ -620,8 +637,8 @@ Upcoming work and any items that need client input or approval.
 Keep the tone warm, professional, and positive. If a date range is clear from the notes, mention it. Focus on value delivered.
 
 ---
-RAW NOTES:
-${docText}`
+CONDENSED NOTES:
+${condensed}`
       }]
     })
   });
@@ -652,7 +669,7 @@ ${docText}`
 
     buf += decoder.decode(value, { stream: true });
     const lines = buf.split('\n');
-    buf = lines.pop(); // hold the last incomplete line
+    buf = lines.pop();
 
     for (const line of lines) {
       if (!line.startsWith('data: ')) continue;
@@ -661,13 +678,10 @@ ${docText}`
 
       try {
         const ev = JSON.parse(data);
-
         if (ev.type === 'content_block_start') {
           inText = ev.content_block?.type === 'text';
-
         } else if (ev.type === 'content_block_stop') {
           inText = false;
-
         } else if (ev.type === 'content_block_delta' && inText && ev.delta?.type === 'text_delta') {
           raw += ev.delta.text;
           bodyEl.innerHTML = marked.parse(raw);
