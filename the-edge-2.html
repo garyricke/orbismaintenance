@@ -570,22 +570,23 @@ async function fetchGoogleDoc() {
 async function generateSummary(docText) {
   const summaryEl = document.getElementById('summaryContent');
 
-  const r = await fetch('/api/summarize', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
-      stream: true,
-      system: `You are a professional project communications specialist for a digital agency.
+  // Truncate to ~40k chars (≈10k tokens) so concurrent page loads
+  // stay well under the 30k tokens/min org-wide rate limit.
+  if (docText.length > 40000) docText = docText.slice(0, 40000);
+
+  const reqBody = JSON.stringify({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 4096,
+    stream: true,
+    system: `You are a professional project communications specialist for a digital agency.
 Transform raw internal project notes into a polished, professional client-facing summary.
 Write clearly and concisely. Use plain language the client will understand.
 Avoid internal jargon, timestamps, or staff names unless essential.
 
 CRITICAL SIGNAL: Any line or sentence in the notes that begins with ** (two asterisks) is a high-priority flag placed intentionally by the team. These items MUST be captured accurately and prominently — they are especially important for Next Steps and Immediate Priorities. Do not omit or paraphrase them loosely; reflect them faithfully in the summary.`,
-      messages: [{
-        role: 'user',
-        content:
+    messages: [{
+      role: 'user',
+      content:
 `Below are raw internal notes from the "${CONFIG.projectName}" project.
 Write a clean, professional activity summary for the client using this markdown structure:
 
@@ -611,9 +612,27 @@ NOTE: Lines starting with ** in the raw notes below are high-priority items flag
 ---
 RAW NOTES:
 ${docText}`
-      }]
-    })
+    }]
   });
+
+  // Fetch with auto-retry on 429 (rate limit)
+  const labelEl = summaryEl.querySelector('.summary-generating-label');
+  let r;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    r = await fetch('/api/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: reqBody,
+    });
+    if (r.status !== 429) break;
+    if (attempt === 3) {
+      throw new Error('Rate limited by Anthropic. Please wait a minute and reload.');
+    }
+    const wait = attempt * 20; // 20s, then 40s
+    if (labelEl) labelEl.textContent = `Rate limited — retrying in ${wait}s…`;
+    await new Promise(res => setTimeout(res, wait * 1000));
+    if (labelEl) labelEl.textContent = 'Generating AI Summary';
+  }
 
   if (!r.ok) {
     const errText = await r.text();
