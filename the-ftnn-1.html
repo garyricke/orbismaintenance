@@ -340,6 +340,42 @@
       80%     { transform: translateX(5px); }
     }
     .shake { animation: shake .4s ease; }
+
+    /* ── Disclaimer ─────────────────────────────────────────────── */
+    .summary-disclaimer {
+      font-size: 11px; color: var(--light); font-style: italic; line-height: 1.5;
+    }
+
+    /* ── Ask Gar Form ───────────────────────────────────────────── */
+    .ask-intro {
+      font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.6;
+    }
+    .ask-form { display: flex; flex-direction: column; gap: 10px; }
+    .ask-input, .ask-textarea {
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px; color: var(--text); background: var(--card);
+      outline: none; transition: border-color .2s;
+    }
+    .ask-input:focus, .ask-textarea:focus { border-color: #aaa; }
+    .ask-textarea { resize: vertical; min-height: 80px; }
+    .ask-btn {
+      align-self: flex-start; padding: 11px 28px;
+      background: #222; color: #fff; border: none; border-radius: 8px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13px; font-weight: 700; letter-spacing: .5px;
+      cursor: pointer; transition: background .2s, transform .1s;
+      margin-top: 2px;
+    }
+    .ask-btn:hover  { background: #000; }
+    .ask-btn:active { transform: scale(.98); }
+    .ask-btn:disabled { background: #bbb; cursor: not-allowed; }
+    .ask-success {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 14px; font-weight: 600; color: #2e7d32;
+    }
+    .ask-honeypot { display: none; }
   </style>
 </head>
 <body>
@@ -394,6 +430,22 @@
   <div class="section">
     <div class="section-label">Activity Summary</div>
     <div id="summaryContent"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Ask a Question</div>
+    <div class="card fade-up">
+      <p class="ask-intro">AI can get things wrong — let me know if you have any questions.</p>
+      <form name="ask-gar" data-netlify="true" id="askForm" class="ask-form">
+        <input type="hidden" name="form-name" value="ask-gar">
+        <input type="hidden" name="project" id="askProject">
+        <p class="ask-honeypot"><label>Skip: <input name="bot-field"></label></p>
+        <input type="text"  name="name"     class="ask-input"    placeholder="Your name"     required>
+        <input type="email" name="email"    class="ask-input"    placeholder="Email address"  required>
+        <textarea           name="question" class="ask-textarea"  placeholder="Your question…" required></textarea>
+        <button type="submit" class="ask-btn">Ask Gar</button>
+      </form>
+    </div>
   </div>
 
 </div>
@@ -724,12 +776,17 @@ async function init() {
       `<div class="error-card fade-up">⚠ ${e.message}</div>`;
   }
 
+  // Set project name on the Ask Gar form hidden field
+  const askProject = document.getElementById('askProject');
+  if (askProject) askProject.value = CONFIG.projectName;
+
   // Immediately show a loading animation in the summary section
   document.getElementById('summaryContent').innerHTML = `
     <div class="card fade-up">
       <div class="summary-generating">
         <div class="summary-generating-label">Generating AI Summary</div>
         <div class="gen-dots"><span></span><span></span><span></span></div>
+        <div class="summary-disclaimer">AI can get things wrong — use the form below if you have any questions.</div>
       </div>
     </div>
   `;
@@ -798,6 +855,32 @@ document.addEventListener('DOMContentLoaded', () => {
   btn.addEventListener('click', checkPassword);
   input.addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
   input.focus();
+
+  // Ask Gar form — AJAX submission to Netlify
+  document.getElementById('askForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form   = e.target;
+    const submit = form.querySelector('.ask-btn');
+    submit.disabled    = true;
+    submit.textContent = 'Sending…';
+
+    try {
+      await fetch('/', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    new URLSearchParams(new FormData(form)).toString(),
+      });
+      form.innerHTML = `
+        <div class="ask-success">
+          <span style="font-size:22px">✅</span>
+          <span>Sent! Gar will be in touch.</span>
+        </div>
+      `;
+    } catch (_) {
+      submit.disabled    = false;
+      submit.textContent = 'Ask Gar';
+    }
+  });
 });
 </script>
 </body>
