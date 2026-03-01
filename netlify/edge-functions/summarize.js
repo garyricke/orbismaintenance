@@ -1,8 +1,5 @@
-// Proxy for Google Gemini API — keeps the API key server-side.
-// Key is stored in Netlify: Site Settings → Environment Variables → GEMINI_API_KEY
-
-const MODEL    = 'gemini-3.1-pro-preview';
-const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:streamGenerateContent?alt=sse`;
+// Proxy for Anthropic API — keeps the API key server-side.
+// Key is stored in Netlify: Site Settings → Environment Variables → ANTHROPIC_API_KEY
 
 export default async (request) => {
   // CORS preflight
@@ -21,18 +18,19 @@ export default async (request) => {
     return new Response('Method not allowed', { status: 405 });
   }
 
-  const key = Deno.env.get('GEMINI_API_KEY');
+  const key = Deno.env.get('ANTHROPIC_API_KEY');
   if (!key) {
-    return new Response('Server misconfiguration: GEMINI_API_KEY not set.', { status: 500 });
+    return new Response('Server misconfiguration: ANTHROPIC_API_KEY not set.', { status: 500 });
   }
 
   const body = await request.text();
 
-  const upstream = await fetch(ENDPOINT, {
+  const upstream = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-goog-api-key': key,
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
     },
     body,
   });
