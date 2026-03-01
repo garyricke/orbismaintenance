@@ -566,58 +566,28 @@ async function fetchGoogleDoc() {
   return text;
 }
 
-/* ── AI Summary (two-pass: Haiku condenses → Opus writes) ───────── */
+/* ── AI Summary (Gemini — single pass, streamed) ────────────────── */
 async function generateSummary(docText) {
   const summaryEl = document.getElementById('summaryContent');
-
-  // ── Pass 1: Haiku condenses raw notes into a compact brief ──────
-  // Update the label already showing from init()
-  const genLabel = summaryEl.querySelector('.summary-generating-label');
-  if (genLabel) genLabel.textContent = 'Condensing Notes';
-
-  const pass1 = await fetch('/api/summarize', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5',
-      max_tokens: 1500,
-      stream: false,
-      system: `You are a project note condenser. Extract and compress the key information from raw project notes into a structured brief. Preserve all dates, decisions, action items, blockers, and status updates. Be thorough but concise. Output plain text only.`,
-      messages: [{
-        role: 'user',
-        content: `Condense these raw project notes into a compact brief, preserving all important facts, dates, decisions, blockers, and action items:\n\n${docText}`
-      }]
-    })
-  });
-
-  if (!pass1.ok) {
-    const errText = await pass1.text();
-    throw new Error(`Condensing step error (${pass1.status}): ${errText}`);
-  }
-
-  const pass1Data = await pass1.json();
-  const condensed = pass1Data.content[0].text;
-
-  // ── Pass 2: Opus writes the polished client report (streamed) ───
-  const genLabel2 = summaryEl.querySelector('.summary-generating-label');
-  if (genLabel2) genLabel2.textContent = 'Writing Summary';
 
   const r = await fetch('/api/summarize', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-opus-4-6',
-      max_tokens: 4096,
-      stream: true,
-      system: `You are a professional project communications specialist for a digital agency.
-Transform condensed project notes into a polished, professional client-facing summary.
+      system_instruction: {
+        parts: [{
+          text: `You are a professional project communications specialist for a digital agency.
+Transform raw internal project notes into a polished, professional client-facing summary.
 Write clearly and concisely. Use plain language the client will understand.
-Avoid internal jargon, timestamps, or staff names unless essential.`,
-      messages: [{
+Avoid internal jargon, timestamps, or staff names unless essential.`
+        }]
+      },
+      contents: [{
         role: 'user',
-        content:
-`Below is a condensed brief of activity on the "${CONFIG.projectName}" project.
-Write a clean, professional client-facing summary using this markdown structure:
+        parts: [{
+          text:
+`Below are raw internal notes from the "${CONFIG.projectName}" project.
+Write a clean, professional activity summary for the client using this markdown structure:
 
 ## Immediate Priorities
 Any urgent actions, blockers, or items requiring the client's attention or decision right now. If there are none, write a single sentence confirming everything is on track.
@@ -637,15 +607,17 @@ Upcoming work and any items that need client input or approval.
 Keep the tone warm, professional, and positive. If a date range is clear from the notes, mention it. Focus on value delivered.
 
 ---
-CONDENSED NOTES:
-${condensed}`
-      }]
+RAW NOTES:
+${docText}`
+        }]
+      }],
+      generationConfig: { maxOutputTokens: 4096 }
     })
   });
 
   if (!r.ok) {
     const errText = await r.text();
-    throw new Error(`Anthropic API error (${r.status}): ${errText}`);
+    throw new Error(`Gemini API error (${r.status}): ${errText}`);
   }
 
   // Switch to streaming output
@@ -656,12 +628,11 @@ ${condensed}`
   `;
   const bodyEl = document.getElementById('summaryBody');
 
-  // Parse SSE stream
+  // Parse Gemini SSE stream
   const reader  = r.body.getReader();
   const decoder = new TextDecoder();
-  let buf    = '';
-  let raw    = '';
-  let inText = false;
+  let buf = '';
+  let raw = '';
 
   while (true) {
     const { done, value } = await reader.read();
@@ -677,23 +648,20 @@ ${condensed}`
       if (!data || data === '[DONE]') continue;
 
       try {
-        const ev = JSON.parse(data);
-        if (ev.type === 'content_block_start') {
-          inText = ev.content_block?.type === 'text';
-        } else if (ev.type === 'content_block_stop') {
-          inText = false;
-        } else if (ev.type === 'content_block_delta' && inText && ev.delta?.type === 'text_delta') {
-          raw += ev.delta.text;
+        const ev   = JSON.parse(data);
+        const text = ev.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          raw += text;
           bodyEl.innerHTML = marked.parse(raw);
         }
       } catch (_) { /* ignore partial JSON */ }
     }
   }
 
-  // Done — remove cursor, add AI credit
+  // Done — remove cursor, add credit
   bodyEl.classList.remove('streaming');
   bodyEl.insertAdjacentHTML('afterend',
-    '<div class="ai-credit">Summary generated by Claude AI · Anthropic</div>'
+    '<div class="ai-credit">Summary generated by Gemini AI · Google</div>'
   );
 }
 
