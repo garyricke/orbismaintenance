@@ -901,22 +901,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeModal() { modal.classList.remove('open'); document.body.style.overflow = ''; }
   toggle  .addEventListener('click', openModal);
   closeBtn.addEventListener('click', closeModal);
-
-  // Skip gate if already authenticated this browser session
-  if (sessionStorage.getItem('_a') === _h) {
-    document.getElementById('gate').style.display = 'none';
-    init();
-    return;
-  }
-
-  const btn   = document.getElementById('gateBtn');
-  const input = document.getElementById('gateInput');
-  btn.addEventListener('click', checkPassword);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
-  input.focus();
   backdrop.addEventListener('click', closeModal);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
+  // Ask Gar form — AJAX submission to Netlify
   document.getElementById('askForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form   = e.target;
@@ -936,6 +924,19 @@ document.addEventListener('DOMContentLoaded', () => {
       submit.textContent = 'Ask Gar';
     }
   });
+
+  // Skip gate if already authenticated this browser session
+  if (sessionStorage.getItem('_a') === _h) {
+    document.getElementById('gate').style.display = 'none';
+    init();
+    return;
+  }
+
+  const btn   = document.getElementById('gateBtn');
+  const input = document.getElementById('gateInput');
+  btn.addEventListener('click', checkPassword);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
+  input.focus();
 });
 </script>
 </body>

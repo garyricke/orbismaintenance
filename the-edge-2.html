@@ -906,6 +906,27 @@ document.addEventListener('DOMContentLoaded', () => {
   backdrop.addEventListener('click', closeModal);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
+  // Ask Gar form — AJAX submission to Netlify
+  document.getElementById('askForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form   = e.target;
+    const submit = form.querySelector('.ask-btn');
+    submit.disabled    = true;
+    submit.textContent = 'Sending…';
+    try {
+      await fetch('/', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    new URLSearchParams(new FormData(form)).toString(),
+      });
+      form.innerHTML = `<div class="ask-success"><span style="font-size:22px">✅</span><span>Sent! Gar will be in touch.</span></div>`;
+      setTimeout(closeModal, 2500);
+    } catch (_) {
+      submit.disabled    = false;
+      submit.textContent = 'Ask Gar';
+    }
+  });
+
   // Skip gate if already authenticated this browser session
   if (sessionStorage.getItem('_a') === _h) {
     document.getElementById('gate').style.display = 'none';
@@ -918,33 +939,6 @@ document.addEventListener('DOMContentLoaded', () => {
   btn.addEventListener('click', checkPassword);
   input.addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
   input.focus();
-
-  // Ask Gar form — AJAX submission to Netlify
-  document.getElementById('askForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form   = e.target;
-    const submit = form.querySelector('.ask-btn');
-    submit.disabled    = true;
-    submit.textContent = 'Sending…';
-
-    try {
-      await fetch('/', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body:    new URLSearchParams(new FormData(form)).toString(),
-      });
-      form.innerHTML = `
-        <div class="ask-success">
-          <span style="font-size:22px">✅</span>
-          <span>Sent! Gar will be in touch.</span>
-        </div>
-      `;
-      setTimeout(closeModal, 2500);
-    } catch (_) {
-      submit.disabled    = false;
-      submit.textContent = 'Ask Gar';
-    }
-  });
 });
 </script>
 </body>
