@@ -892,20 +892,7 @@ async function checkPassword() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Skip gate if already authenticated this browser session
-  if (sessionStorage.getItem('_a') === _h) {
-    document.getElementById('gate').style.display = 'none';
-    init();
-    return;
-  }
-
-  const btn   = document.getElementById('gateBtn');
-  const input = document.getElementById('gateInput');
-  btn.addEventListener('click', checkPassword);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
-  input.focus();
-
-  // Ask Gar modal — open / close
+  // Ask Gar modal — always set up regardless of auth state
   const modal    = document.getElementById('askModal');
   const backdrop = document.getElementById('askBackdrop');
   const closeBtn = document.getElementById('askClose');
@@ -918,6 +905,19 @@ document.addEventListener('DOMContentLoaded', () => {
   closeBtn.addEventListener('click', closeModal);
   backdrop.addEventListener('click', closeModal);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // Skip gate if already authenticated this browser session
+  if (sessionStorage.getItem('_a') === _h) {
+    document.getElementById('gate').style.display = 'none';
+    init();
+    return;
+  }
+
+  const btn   = document.getElementById('gateBtn');
+  const input = document.getElementById('gateInput');
+  btn.addEventListener('click', checkPassword);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
+  input.focus();
 
   // Ask Gar form — AJAX submission to Netlify
   document.getElementById('askForm').addEventListener('submit', async (e) => {

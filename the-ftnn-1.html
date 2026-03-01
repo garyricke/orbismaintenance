@@ -892,6 +892,16 @@ async function checkPassword() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Ask Gar modal — always set up regardless of auth state
+  const modal    = document.getElementById('askModal');
+  const backdrop = document.getElementById('askBackdrop');
+  const closeBtn = document.getElementById('askClose');
+  const toggle   = document.getElementById('askToggle');
+  function openModal()  { modal.classList.add('open');    document.body.style.overflow = 'hidden'; }
+  function closeModal() { modal.classList.remove('open'); document.body.style.overflow = ''; }
+  toggle  .addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+
   // Skip gate if already authenticated this browser session
   if (sessionStorage.getItem('_a') === _h) {
     document.getElementById('gate').style.display = 'none';
@@ -904,15 +914,6 @@ document.addEventListener('DOMContentLoaded', () => {
   btn.addEventListener('click', checkPassword);
   input.addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
   input.focus();
-
-  const modal    = document.getElementById('askModal');
-  const backdrop = document.getElementById('askBackdrop');
-  const closeBtn = document.getElementById('askClose');
-  const toggle   = document.getElementById('askToggle');
-  function openModal()  { modal.classList.add('open');    document.body.style.overflow = 'hidden'; }
-  function closeModal() { modal.classList.remove('open'); document.body.style.overflow = ''; }
-  toggle  .addEventListener('click', openModal);
-  closeBtn.addEventListener('click', closeModal);
   backdrop.addEventListener('click', closeModal);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
