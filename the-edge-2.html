@@ -580,7 +580,9 @@ async function generateSummary(docText) {
       system: `You are a professional project communications specialist for a digital agency.
 Transform raw internal project notes into a polished, professional client-facing summary.
 Write clearly and concisely. Use plain language the client will understand.
-Avoid internal jargon, timestamps, or staff names unless essential.`,
+Avoid internal jargon, timestamps, or staff names unless essential.
+
+CRITICAL SIGNAL: Any line or sentence in the notes that begins with ** (two asterisks) is a high-priority flag placed intentionally by the team. These items MUST be captured accurately and prominently — they are especially important for Next Steps and Immediate Priorities. Do not omit or paraphrase them loosely; reflect them faithfully in the summary.`,
       messages: [{
         role: 'user',
         content:
@@ -600,9 +602,11 @@ Bullet points of completed work. Group by date or theme. Be specific but concise
 Significant decisions made, issues resolved, or milestones reached.
 
 ## Next Steps
-Upcoming work and any items that need client input or approval.
+Upcoming work and any items that need client input or approval. Pay special attention to any lines beginning with ** in the notes — include every one of them here, worded clearly and faithfully.
 
 Keep the tone warm, professional, and positive. If a date range is clear from the notes, mention it. Focus on value delivered.
+
+NOTE: Lines starting with ** in the raw notes below are high-priority items flagged by the team. Do not miss any of them.
 
 ---
 RAW NOTES:
