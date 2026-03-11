@@ -418,6 +418,89 @@
       font-size: 14px; font-weight: 600; color: #2e7d32; padding: 8px 0;
     }
     .ask-honeypot { display: none; }
+
+    /* ── Purchase More Hours ─────────────────────────────────────── */
+    .hours-cta {
+      margin-top: 18px; padding-top: 16px;
+      border-top: 1px solid #f0f0f0;
+      display: flex; justify-content: center;
+    }
+    .purchase-btn {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13px; font-weight: 700; letter-spacing: .3px;
+      padding: 10px 24px; border-radius: 20px;
+      background: #FF6600; color: #fff; border: none;
+      cursor: pointer; transition: background .2s;
+    }
+    .purchase-btn:hover { background: #e05a00; }
+
+    /* ── Purchase modal ──────────────────────────────────────────── */
+    .purchase-modal-wrap {
+      display: none;
+      position: fixed; inset: 0; z-index: 20000;
+      align-items: center; justify-content: center; padding: 24px;
+    }
+    .purchase-modal-wrap.open { display: flex; }
+    .purchase-modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45); backdrop-filter: blur(2px);
+    }
+    .purchase-modal-card {
+      position: relative; z-index: 1;
+      background: var(--card); border-radius: 16px; padding: 28px;
+      width: 100%; max-width: 480px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.22);
+      animation: fade-up .2s ease forwards;
+    }
+    .purchase-modal-close {
+      position: absolute; top: 14px; right: 16px;
+      background: none; border: none; cursor: pointer;
+      font-size: 18px; color: var(--light); line-height: 1; padding: 4px;
+    }
+    .purchase-modal-close:hover { color: var(--text); }
+    .purchase-modal-title {
+      font-family: 'Bebas Neue', condensed, sans-serif;
+      font-size: 28px; letter-spacing: 1px; margin-bottom: 4px;
+    }
+    .purchase-modal-subtitle {
+      font-size: 12px; color: var(--muted); margin-bottom: 18px; line-height: 1.5;
+    }
+    .pkg-grid {
+      display: grid; grid-template-columns: repeat(2,1fr);
+      gap: 10px; margin-bottom: 18px;
+    }
+    .pkg-card {
+      position: relative; display: block;
+      border: 2px solid var(--border); border-radius: 10px;
+      padding: 12px 10px; cursor: pointer;
+      transition: border-color .15s, background .15s;
+      text-align: center; user-select: none;
+    }
+    .pkg-card:hover { border-color: #ccc; }
+    .pkg-card.selected { border-color: #FF6600; background: #fff5f0; }
+    .pkg-card input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .pkg-hrs {
+      font-family: 'Bebas Neue', condensed, sans-serif;
+      font-size: 26px; letter-spacing: .5px; line-height: 1; color: var(--text);
+    }
+    .pkg-total { font-size: 13px; font-weight: 700; color: var(--text); margin: 3px 0 2px; }
+    .pkg-rate  { font-size: 10px; font-weight: 600; color: var(--light); text-transform: uppercase; letter-spacing: .5px; }
+    .purchase-form { display: flex; flex-direction: column; gap: 10px; }
+    .purchase-submit-btn {
+      align-self: flex-start; padding: 11px 28px; margin-top: 2px;
+      background: #FF6600; color: #fff; border: none; border-radius: 8px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13px; font-weight: 700; letter-spacing: .5px;
+      cursor: pointer; transition: background .2s, transform .1s;
+    }
+    .purchase-submit-btn:hover   { background: #e05a00; }
+    .purchase-submit-btn:active  { transform: scale(.98); }
+    .purchase-submit-btn:disabled { background: #bbb; cursor: not-allowed; }
+    .purchase-success {
+      display: flex; align-items: flex-start; gap: 12px;
+      font-size: 14px; font-weight: 600; color: #2e7d32;
+      padding: 8px 0; line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -482,6 +565,25 @@
 
 </div>
 
+<!-- ── Purchase More Hours Modal ──────────────────────────────────── -->
+<div id="purchaseModal" class="purchase-modal-wrap">
+  <div class="purchase-modal-backdrop" id="purchaseBackdrop"></div>
+  <div class="purchase-modal-card">
+    <button class="purchase-modal-close" id="purchaseClose" aria-label="Close">✕</button>
+    <div class="purchase-modal-title">Purchase More Hours</div>
+    <p class="purchase-modal-subtitle">Choose a package — we'll send you an invoice you can pay online.</p>
+    <form name="purchase-hours" data-netlify="true" id="purchaseForm" class="purchase-form">
+      <input type="hidden" name="form-name" value="purchase-hours">
+      <input type="hidden" name="project"   id="purchaseProject">
+      <input type="hidden" name="package"   id="purchasePackage">
+      <div class="pkg-grid" id="pkgGrid"></div>
+      <input type="text"  name="name"  class="ask-input" placeholder="Your name"     required>
+      <input type="email" name="email" class="ask-input" placeholder="Email address"  required>
+      <button type="submit" class="purchase-submit-btn">Request Invoice</button>
+    </form>
+  </div>
+</div>
+
 <!-- ── Ask Gar Modal ─────────────────────────────────────────────── -->
 <div id="askModal" class="ask-modal-wrap">
   <div class="ask-modal-backdrop" id="askBackdrop"></div>
@@ -502,6 +604,18 @@
 </div>
 
 <script>
+/* ── Hour packages ──────────────────────────────────────────────── */
+const PACKAGES = [
+  { hrs: 67, total: 5000, rate: 75  },
+  { hrs: 50, total: 4000, rate: 80  },
+  { hrs: 34, total: 3000, rate: 88  },
+  { hrs: 27, total: 2500, rate: 93  },
+  { hrs: 20, total: 2000, rate: 100 },
+  { hrs: 13, total: 1500, rate: 115 },
+  { hrs:  8, total: 1000, rate: 125 },
+  { hrs:  4, total:  600, rate: 150 },
+];
+
 /* ── Utilities ──────────────────────────────────────────────────── */
 function parseDuration(str) {
   if (!str) return 0;
@@ -650,6 +764,7 @@ function renderHours({ budgeted, tracked, firstDate, lastDate, duration }) {
         </div>
       </div>
       <div class="date-range">${dateStr}</div>
+      ${remPct <= 10 ? `<div class="hours-cta"><button class="purchase-btn" id="purchaseToggle">Purchase More Hours</button></div>` : ''}
     </div>
   `;
 }
@@ -820,6 +935,8 @@ async function init() {
     hideLoader();
     document.getElementById('page').style.display = 'block';
     renderHours(data);
+    const purchaseBtn = document.getElementById('purchaseToggle');
+    if (purchaseBtn) purchaseBtn.addEventListener('click', openPurchaseModal);
   } catch (e) {
     hideLoader();
     document.getElementById('page').style.display = 'block';
@@ -854,6 +971,16 @@ async function init() {
     document.getElementById('summaryContent').innerHTML =
       `<div class="error-card fade-up">⚠ ${e.message}</div>`;
   }
+}
+
+/* ── Purchase modal helpers ─────────────────────────────────────── */
+function openPurchaseModal() {
+  document.getElementById('purchaseModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closePurchaseModal() {
+  document.getElementById('purchaseModal').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 /* ── Auth ───────────────────────────────────────────────────────── */
@@ -905,7 +1032,52 @@ document.addEventListener('DOMContentLoaded', () => {
   toggle  .addEventListener('click', openModal);
   closeBtn.addEventListener('click', closeModal);
   backdrop.addEventListener('click', closeModal);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closePurchaseModal(); } });
+
+  // Purchase More Hours modal
+  document.getElementById('purchaseClose').addEventListener('click', closePurchaseModal);
+  document.getElementById('purchaseBackdrop').addEventListener('click', closePurchaseModal);
+
+  // Build package cards
+  const pkgGrid = document.getElementById('pkgGrid');
+  PACKAGES.forEach((pkg, i) => {
+    const card = document.createElement('label');
+    card.className = 'pkg-card' + (i === 0 ? ' selected' : '');
+    card.innerHTML = `
+      <input type="radio" name="pkg" value="${pkg.hrs} hrs — $${pkg.total.toLocaleString()} ($${pkg.rate}/hr)" ${i === 0 ? 'checked' : ''}>
+      <div class="pkg-hrs">${pkg.hrs} hrs</div>
+      <div class="pkg-total">$${pkg.total.toLocaleString()}</div>
+      <div class="pkg-rate">$${pkg.rate} / hr</div>
+    `;
+    card.querySelector('input').addEventListener('change', () => {
+      document.querySelectorAll('.pkg-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+    });
+    pkgGrid.appendChild(card);
+  });
+
+  document.getElementById('purchaseForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form   = e.target;
+    const submit = form.querySelector('.purchase-submit-btn');
+    const sel    = form.querySelector('input[name="pkg"]:checked');
+    document.getElementById('purchaseProject').value = CONFIG.projectName;
+    document.getElementById('purchasePackage').value = sel ? sel.value : '';
+    submit.disabled    = true;
+    submit.textContent = 'Sending…';
+    try {
+      await fetch('/', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    new URLSearchParams(new FormData(form)).toString(),
+      });
+      form.innerHTML = `<div class="purchase-success"><span style="font-size:22px">✅</span><span>Thank you! You will receive an invoice shortly which you can pay online.</span></div>`;
+      setTimeout(closePurchaseModal, 3500);
+    } catch (_) {
+      submit.disabled    = false;
+      submit.textContent = 'Request Invoice';
+    }
+  });
 
   // Ask Gar form — AJAX submission to Netlify
   document.getElementById('askForm').addEventListener('submit', async (e) => {
