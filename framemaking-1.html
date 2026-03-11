@@ -479,12 +479,12 @@
     .pkg-card:hover { border-color: #ccc; }
     .pkg-card.selected { border-color: #FF6600; background: #fff5f0; }
     .pkg-card input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
-    .pkg-hrs {
+    .pkg-rate {
       font-family: 'Bebas Neue', condensed, sans-serif;
-      font-size: 26px; letter-spacing: .5px; line-height: 1; color: var(--text);
+      font-size: 28px; letter-spacing: .5px; line-height: 1; color: var(--text);
     }
-    .pkg-total { font-size: 13px; font-weight: 700; color: var(--text); margin: 3px 0 2px; }
-    .pkg-rate  { font-size: 10px; font-weight: 600; color: var(--light); text-transform: uppercase; letter-spacing: .5px; }
+    .pkg-total { font-size: 13px; font-weight: 700; color: var(--muted); margin: 3px 0 2px; }
+    .pkg-hrs   { font-size: 10px; font-weight: 600; color: var(--light); letter-spacing: .5px; }
     .purchase-form { display: flex; flex-direction: column; gap: 10px; }
     .purchase-submit-btn {
       align-self: flex-start; padding: 11px 28px; margin-top: 2px;
@@ -1045,9 +1045,9 @@ document.addEventListener('DOMContentLoaded', () => {
     card.className = 'pkg-card' + (i === 0 ? ' selected' : '');
     card.innerHTML = `
       <input type="radio" name="pkg" value="${pkg.hrs} hrs — $${pkg.total.toLocaleString()} ($${pkg.rate}/hr)" ${i === 0 ? 'checked' : ''}>
-      <div class="pkg-hrs">${pkg.hrs} hrs</div>
+      <div class="pkg-rate">$${pkg.rate}/hr</div>
       <div class="pkg-total">$${pkg.total.toLocaleString()}</div>
-      <div class="pkg-rate">$${pkg.rate} / hr</div>
+      <div class="pkg-hrs">${pkg.hrs} hrs</div>
     `;
     card.querySelector('input').addEventListener('change', () => {
       document.querySelectorAll('.pkg-card').forEach(c => c.classList.remove('selected'));
